@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3
 """
 mini-msf.py — Simple modular CLI framework in Python (safe, educational)
 
