@@ -1,0 +1,44 @@
+Directory Scan Results - https://sman1dramaga.sch.id
+Time: Fri Sep 26 07:50:21 2025
+Scan duration: 283.01s
+Total paths tested: 968
+Paths found: 30
+
+=== Status 200 ===
+license.txt (19903 bytes)
+robots.txt (120 bytes)
+wp-content/ (0 bytes)
+phpmyadmin/ (18395 bytes)
+pma/ (18388 bytes)
+
+=== Status 301 ===
+sitemap.xml - Redirect to https://sman1dramaga.sch.id/wp-sitemap.xml
+wp-admin - Redirect to https://sman1dramaga.sch.id/wp-admin/
+robots.txt/ - Redirect to https://sman1dramaga.sch.id/robots.txt
+sitemap.xml.php - Redirect to https://sman1dramaga.sch.id/wp-sitemap.xml
+sitemap.xml.css - Redirect to https://sman1dramaga.sch.id/wp-sitemap.xml
+sitemap.xml.js - Redirect to https://sman1dramaga.sch.id/wp-sitemap.xml
+sitemap.xml.html - Redirect to https://sman1dramaga.sch.id/wp-sitemap.xml
+cgi-bin - Redirect to https://sman1dramaga.sch.id/cgi-bin/
+wp-content - Redirect to https://sman1dramaga.sch.id/wp-content/
+wp-includes - Redirect to https://sman1dramaga.sch.id/wp-includes/
+sitemap.xml.txt - Redirect to https://sman1dramaga.sch.id/wp-sitemap.xml
+sitemap.xml.bak - Redirect to https://sman1dramaga.sch.id/wp-sitemap.xml
+phpmyadmin - Redirect to https://sman1dramaga.sch.id/phpmyadmin/
+sitemap.xml/ - Redirect to https://sman1dramaga.sch.id/wp-sitemap.xml
+pma - Redirect to https://sman1dramaga.sch.id/pma/
+
+=== Status 302 ===
+wp-admin/ - Redirect to https://sman1dramaga.sch.id/wp-login.php?redirect_to=https%3A%2F%2Fsman1dramaga.sch.id%2Fwp-admin%2F&reauth=1
+login - Redirect to https://sman1dramaga.sch.id/wp-login.php
+admin - Redirect to https://sman1dramaga.sch.id/wp-admin/
+dashboard/ - Redirect to https://sman1dramaga.sch.id/wp-admin/
+login.php - Redirect to https://sman1dramaga.sch.id/wp-login.php
+dashboard - Redirect to https://sman1dramaga.sch.id/wp-admin/
+login/ - Redirect to https://sman1dramaga.sch.id/wp-login.php
+admin/ - Redirect to https://sman1dramaga.sch.id/wp-admin/
+
+=== Status 403 ===
+.htaccess/ - Forbidden
+.htaccess - Forbidden
+

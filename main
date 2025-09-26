@@ -16,6 +16,7 @@ import sys
 import shlex
 import importlib.util
 import re
+import platform
 import random
 from pathlib import Path
 from dataclasses import dataclass, field
@@ -35,13 +36,15 @@ def load_banners_from_folder():
     """Load all .txt files from BANNER_DIR into _loaded_banners (fallback minimal)."""
     global _loaded_banners
     _loaded_banners = []
+    if not BANNER_DIR.exists() or not BANNER_DIR.is_dir():
+       print(f"Error: {BANNER_DIR} folder does not exists.")
+       return
     try:
-        BANNER_DIR.mkdir(exist_ok=True, parents=True)
         for p in sorted(BANNER_DIR.glob("*.txt")):
             try:
                 text = p.read_text(encoding="utf-8", errors="ignore").rstrip()
                 if text:
-                    _loaded_banners.append(text + "\n")
+                    _loaded_banners.append(text + "\n\n")
             except Exception:
                 pass
     except Exception:
@@ -75,6 +78,25 @@ class ModuleInstance:
     def run(self, session):
         return self.module.run(session, self.options)
 
+class Search:
+    def __init__(self, modules: Dict[str, Path], metadata: Dict[str, Dict[str, Any]]):
+        self.modules = modules
+        self.metadata = metadata
+    def search_modules(self, keyword: str):
+        keyword = keyword.lower()
+        results = []
+        if '/' in keyword or ':' in keyword:
+            parts = re.split(r'[/]', keyword)
+            for key, meta in self.metadata.items():
+                if parts[0] in key.lower() and (parts[1] in meta.get("description", "").lower() if len(parts) > 1 else True):
+                   results.append((key, meta.get('description', "(no description)")))
+        else:
+            for key, meta in self.metadata.items():
+                name = key.lower()
+                description = meta.get("description", "").lower()
+                if keyword in name or keyword in description:
+                    results.append((key, meta.get('description', "(no description)")))
+        return results           
 
 class MiniMSF:
     def __init__(self):
@@ -84,16 +106,32 @@ class MiniMSF:
         self.session = {"user": os.getlogin() if hasattr(os, "getlogin") else "unknown"}
         self.scan_modules()
 
+    def check_folders_exist(self):
+        """Check if necessary directories exist, and print an error message if any are missing."""
+        if not MODULE_DIR.exists() or not MODULE_DIR.is_dir():
+            print(f"Error: {MODULE_DIR} folder does not exist.")
+        if not EXAMPLES_DIR.exists() or not EXAMPLES_DIR.is_dir():
+            print(f"Error: {EXAMPLES_DIR} folder does not exist.")
+        if not BANNER_DIR.exists() or not BANNER_DIR.is_dir():
+            print(f"Error: {BANNER_DIR} folder does not exist.")
+
     def scan_modules(self):
         """Scan module files in both MODULE_DIR and EXAMPLES_DIR and read lightweight metadata without importing."""
+        self.check_folders_exist()  # Ensure necessary folders exist
+
+        if not MODULE_DIR.exists() or not MODULE_DIR.is_dir():
+            print("Skipping module scan because the 'modules/' folder doesn't exist.")
+            return
+        if not EXAMPLES_DIR.exists() or not EXAMPLES_DIR.is_dir():
+            print("Skipping example module scan because the 'examples/' folder doesn't exist.")
+            return
+
         self.modules = {}
         self.metadata = {}
-        MODULE_DIR.mkdir(exist_ok=True)
-        EXAMPLES_DIR.mkdir(exist_ok=True)
 
         for folder, prefix in ((MODULE_DIR, "modules"), (EXAMPLES_DIR, "examples")):
             for p in folder.rglob("*.py"):
-                rel = str(p.relative_to(folder)).replace(os.sep, "/")[:-3]
+                rel = str(p.relative_to(folder)).replace(os.sep, "/")
                 key = f"{prefix}/{rel}"
                 self.modules[key] = p
                 self.metadata[key] = self._read_metadata_from_file(p)
@@ -109,6 +147,7 @@ class MiniMSF:
                         break
                     lines.append(line)
                 header_text = "".join(lines)
+
             # find MODULE_INFO = { ... }
             m = re.search(r"MODULE_INFO\s*=\s*{([^}]*)}", header_text, re.DOTALL)
             if m:
@@ -116,12 +155,14 @@ class MiniMSF:
                 mdesc = re.search(r"['\"]description['\"]\s*:\s*['\"]([^'\"]+)['\"]", inside)
                 if mdesc:
                     data["description"] = mdesc.group(1).strip()
+
             # OPTIONS keys
             mo = re.search(r"OPTIONS\s*=\s*{([^}]*)}", header_text, re.DOTALL)
             if mo:
                 inside_o = mo.group(1)
                 keys = re.findall(r"['\"]([A-Za-z0-9_]+)['\"]\s*:", inside_o)
                 data["options"] = keys
+
             # fallback: module-level docstring first line
             if not data["description"]:
                 mdoc = re.search(r'^(?:\s)*(?:"""|\'\'\')(.+?)(?:"""|\'\'\')', header_text, re.DOTALL | re.MULTILINE)
@@ -151,12 +192,15 @@ class MiniMSF:
             filt = args[1] if len(args) > 1 else None
             print("Available modules:")
             keys = sorted(self.modules.keys())
-            if filt:
-                keys = [k for k in keys if filt in k]
-            for k in keys:
-                meta = self.metadata.get(k, {})
-                desc = meta.get("description") or "(no description)"
-                print(f"  {k:30} {desc}")
+            if not keys:
+                print("No modules found.")
+            else:
+                if filt:
+                    keys = [k for k in keys if filt in k]
+                for k in keys:
+                    meta = self.metadata.get(k, {})
+                    desc = meta.get("description") or "(no description)"
+                    print(f"  {k:30} {desc}")
         else:
             print("Usage: show modules [filter]")
 
@@ -246,6 +290,19 @@ class MiniMSF:
         else:
             print("No module loaded.")
 
+    def cmd_search(self, args):
+        if not args:
+           print("Usage: search <keyword>")
+           return
+        keyword = args[0].lower()
+        searcher = Search(self.modules, self.metadata)
+        results = searcher.search_modules(keyword)
+        if not results:
+           print(f"No Module")
+        else:
+           for results in results:
+               print(f"{results[0]} - {results[1]}")
+
     def cmd_scan(self, args):
         self.scan_modules()
         print(f"Scanned {len(self.modules)} modules.")
@@ -261,6 +318,7 @@ class MiniMSF:
         if sub == "reload":
             load_banners_from_folder()
             print(f"Loaded {len(_loaded_banners)} banners (from {BANNER_DIR}).")
+            print(get_random_banner())
         elif sub == "list":
             try:
                 files = sorted(BANNER_DIR.glob("*.txt"))
@@ -273,14 +331,57 @@ class MiniMSF:
                 print("Error listing banners:", e)
         else:
             print("Usage: banner reload|list")
+    
+    def cmd_help(self):
+
+    # Menghitung lebar terminal
+       terminal_width = 40  # Misalnya, 80 karakter adalah lebar terminal
+       terminal2_width = 80
+       terminal3_width = 20
+      # Header dengan desain ASCII art dan informasi tambahan
+       #print("=" * terminal2_width)  # Pembatas
+       print("\n")
+    # Menampilkan judul dan garis pembatas
+       print("Core Commands".center(terminal3_width))
+       print("--------------".center(terminal3_width))  # Pembatas horizontal
+    # Menampilkan tabel perintah dan deskripsi
+       print("=" * terminal2_width)  # Pembatas
+       print(f"{'Command':<30} {'Description'}".center(terminal3_width))
+       print("=" * terminal2_width)  # Garis pemisah tabel
+
+    # Menggunakan commands baru yang sudah diberikan
+       commands = [
+         ("show modules [filter]", "Show available modules, optionally filtered by 'filter.'"),
+         ("use <module>", "Load a module by name (e.g., 'use modules/recon/sysinfo')."),
+         ("options", "Show options for the current module."),
+         ("set <option> <value>", "Set the value for an option of the loaded module."),
+         ("run", "Run the current loaded module with set options."),
+         ("back", "Unload the current module."),
+         ("scan", "Scan for modules in 'modules/' and 'examples.'"),
+         ("banner reload", "Reload banner files from the 'banner/' folder."),
+         ("banner list", "List available banner files."),
+         ("exit / quit", "Exit the program.")
+    ]
+
+    # Menampilkan setiap perintah dan deskripsi
+       for cmd, desc in commands:
+         print(f"{cmd:<30} {desc}".center(terminal_width))
+        
+    def terminal_clear(self):
+
+         system_platform = platform.system().lower()
+         if system_platform == "windows":
+            os.system("cls")
+         else:
+            os.system("clear")
 
     def repl(self):
-        print("mini-msf (safe) — type 'help' for commands")
+        print("lzf (safe) — type 'help' for commands")
+        print(get_random_banner(), end="")
         while True:
             try:
                 # print a random banner each prompt iteration
-                print(get_random_banner(), end="")
-                prompt = f"mini-msf({self.loaded_module.name})> " if self.loaded_module else "mini-msf> "
+                prompt = f"lzf({self.loaded_module.name})> " if self.loaded_module else "lzf> "
                 line = input(prompt)
             except (EOFError, KeyboardInterrupt):
                 print()
@@ -293,7 +394,7 @@ class MiniMSF:
             if cmd in ("exit", "quit"):
                 break
             elif cmd == "help":
-                print("Commands: show modules [filter] | use <module> | options | set <opt> <val> | run | back | scan | banner | exit")
+                 self.cmd_help()
             elif cmd == "show":
                 self.cmd_show(args)
             elif cmd == "use":
@@ -310,6 +411,10 @@ class MiniMSF:
                 self.cmd_scan(args)
             elif cmd == "banner":
                 self.cmd_banner(args)
+            elif cmd == "search":
+                self.cmd_search(args)
+            elif cmd == "clear":
+                self.terminal_clear()
             else:
                 print("Unknown command. type 'help'")
 

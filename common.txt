@@ -1,0 +1,13 @@
+admin
+administrator
+panel
+dashboard
+login
+js
+css
+uploads
+config
+backup
+wp-admin
+wp-content
+
