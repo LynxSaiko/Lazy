@@ -1,6 +1,5 @@
 """
-Directory Bruteforce - Find hidden files and directories on web servers
-FIXED VERSION - No recursive import
+Directory Bruteforce - Find hidden files and directories on Web Servers
 """
 
 MODULE_INFO = {
@@ -262,17 +261,17 @@ def run(session, options):
                 
                 # Color-coded output based on status
                 if status_code == 200:
-                    print(f"✅ 200   {size:6} {path}")
+                    print(f" 200   {size:6} {path}")
                 elif status_code == 403:
-                    print(f"🔒 403   {size:6} {path}")
+                    print(f" 403   {size:6} {path}")
                 elif status_code in [301, 302]:
-                    print(f"↪️ {status_code}   {size:6} {path} → {message}")
+                    print(f" {status_code}   {size:6} {path} → {message}")
                 elif status_code == 401:
-                    print(f"🔐 401   {size:6} {path}")
+                    print(f" 401   {size:6} {path}")
                 elif status_code == 500:
-                    print(f"💥 500   {size:6} {path}")
+                    print(f" 500   {size:6} {path}")
                 else:
-                    print(f"ℹ️ {status_code}   {size:6} {path}")
+                    print(f" {status_code}   {size:6} {path}")
                 
                 bruteforcer.found_paths.append((path, status_code, size, message))
             
