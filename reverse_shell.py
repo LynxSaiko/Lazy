@@ -152,6 +152,14 @@ def run(session, options):
         with open(final_output, 'w') as f:
             f.write(content)
         
+        # Make script executable if it's a script type (optional)
+        if ext in (".py", ".sh", ".pl", ".rb", ".ps1"):
+            try:
+                st = os.stat(final_output)
+                os.chmod(final_output, st.st_mode | stat.S_IEXEC)
+            except Exception:
+                pass
+        
         print(f"[+] Reverse shell saved to: {final_output}")
         print(f"[+] Type: {shell_type.upper()}")
         print(f"[+] Size: {len(content)} bytes")
