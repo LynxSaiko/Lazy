@@ -5,23 +5,6 @@
   <Name>Applications</Name>
   
   <!-- LEAKOS Main Menu -->
-  <Menu>
-    <Name>LEAKOS</Name>
-    <Directory>leakos.directory</Directory>
-    <Include>
-      <Category>LEAKOS</Category>
-    </Include>
-    
-    <Layout>
-      <Filename>leakos-info.directory</Filename>
-      <Filename>leakos-pentest.directory</Filename>
-      <Filename>leakos-webapp.directory</Filename>
-      <Filename>leakos-wireless.directory</Filename>
-      <Filename>leakos-forensic.directory</Filename>
-      <Separator/>
-      <Merge type="all"/>
-    </Layout>
-    
     <!-- Information Gathering -->
     <Menu>
       <Name>Information Gathering</Name>
