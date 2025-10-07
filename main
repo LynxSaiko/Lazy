@@ -50,7 +50,11 @@ def load_banners_from_folder():
     except Exception:
         pass
     if not _loaded_banners:
-        _loaded_banners = ["mini-msf — simple modular CLI\n"]
+        _loaded_banners = ["Lazy Framework\n"]
+
+    
+
+
 
 def get_random_banner():
     if not _loaded_banners:
@@ -98,7 +102,7 @@ class Search:
                     results.append((key, meta.get('description', "(no description)")))
         return results           
 
-class MiniMSF:
+class LazyFramework:
     def __init__(self):
         self.modules: Dict[str, Path] = {}  # key -> path
         self.metadata: Dict[str, Dict[str, Any]] = {}  # key -> metadata
@@ -331,7 +335,34 @@ class MiniMSF:
                 print("Error listing banners:", e)
         else:
             print("Usage: banner reload|list")
-    
+
+    def cmd_cd(self, args):
+        if not args:
+           return
+        new_dir = args[0]
+        try:
+           os.chdir(new_dir)
+           print(f"Changed Directory to: {os.getcwd()}")
+        except FileNotFoundError:
+           print(f"Error: The Directory '{new_dir}' does not exist.")
+        except PermissionError:
+           print(f"Erro:You do not have permission to access '{new_dir}'.")
+        except Exception as e:
+           print(f"Error: {str(e)}")
+
+    def cmd_ls(self, args):
+        try:
+            files = os.listdir()
+            if not files:
+               print(f"Tidak ada directory ini")
+            else:
+
+               print(f"Daftar File")
+               for file in files:
+                   print(f"\033[31m] {file} ")
+        except Exception as e:
+            print(f"Error saat mencoba membaca direktori: {str(e)}")
+
     def cmd_help(self):
 
     # Menghitung lebar terminal
@@ -358,6 +389,7 @@ class MiniMSF:
          ("run", "Run the current loaded module with set options."),
          ("back", "Unload the current module."),
          ("scan", "Scan for modules in 'modules/' and 'examples.'"),
+         ("cd", "Change Directory.'"),
          ("banner reload", "Reload banner files from the 'banner/' folder."),
          ("banner list", "List available banner files."),
          ("exit / quit", "Exit the program.")
@@ -380,9 +412,12 @@ class MiniMSF:
         print(get_random_banner(), end="")
         while True:
             try:
-                # print a random banner each prompt iteration
-                prompt = f"lzf({self.loaded_module.name})> " if self.loaded_module else "lzf> "
-                line = input(prompt)
+               if  self.loaded_module and 'modules' in self.loaded_module.name:
+                   # print a random banner each prompt iteration
+                   prompt = f"lzf(\033[41m\033[97m{self.loaded_module.name}\033[0m)> " if self.loaded_module else "lzf> "
+               else:
+                   prompt = "lzf> "
+               line = input(prompt)
             except (EOFError, KeyboardInterrupt):
                 print()
                 break
@@ -413,6 +448,10 @@ class MiniMSF:
                 self.cmd_banner(args)
             elif cmd == "search":
                 self.cmd_search(args)
+            elif cmd == "cd":
+                self.cmd_cd(args)
+            elif cmd == "ls":
+                self.cmd_ls(args)
             elif cmd == "clear":
                 self.terminal_clear()
             else:
@@ -490,7 +529,7 @@ def ensure_example_modules():
 def main():
     ensure_example_modules()
     load_banners_from_folder()
-    app = MiniMSF()
+    app = LazyFramework()
     try:
         app.repl()
     except Exception as e:
